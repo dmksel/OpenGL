@@ -1,0 +1,7 @@
+# Directories 
+.vs/
+bin/
+Dependencies/GLEW/glew-2.1.0/doc/
+
+# Files
+*.user
