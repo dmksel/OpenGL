@@ -16,8 +16,34 @@ struct ShaderProgramSource
 	std::string FragmentSource;
 };
 
+ShaderProgramSource ParseShader(const std::string& filepath)
+{
+    enum class ShaderType
+    {
+        NONE = -1, VERTEX = 0, FRAGMENT = 1
+    };
 
+    std::ifstream stream(filepath);
+    std::stringstream ss[2];
+    std::string line;
+    ShaderType type = ShaderType::NONE;
 
+    while (getline(stream, line))
+    {
+        if (line.find("shader") != std::string::npos)
+        {
+            if (line.find("vertex") != std::string::npos)
+                type = ShaderType::VERTEX;
+            else if (line.find("fragment") != std::string::npos)
+                type = ShaderType::FRAGMENT;
+        }
+        else
+        {
+            ss[(int)type] << line << '\n';
+        }
+    }
+    return { ss[0].str(), ss[1].str() };
+}
 
 static unsigned int CompileShader(unsigned int type, const std::string& source)
 {
@@ -85,8 +111,8 @@ int main(void)
 
 	//glfwSwapInterval(1);
 
-	//if (glewInit() != GLEW_OK)
-	//	std::cout << "ERROR" << std::endl;
+	if (glewInit() != GLEW_OK)
+		std::cout << "ERROR" << std::endl;
 
 	std::cout << glGetString(GL_VERSION) << std::endl;
 
@@ -95,32 +121,41 @@ int main(void)
 		0.5f, -0.5f, // 1
 		0.5f,  0.5f, // 2
 
+        -0.5f, -0.5f, // 3
+        0.5f,  0.5f, // 4
+        -0.5f,  0.5f, // 5
 	};
 
     uint32_t buffer;
 
-    //glGenBuffers(1, &buffer);
-    //glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    //glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(float), &positions, GL_STATIC_DRAW); 
+    glGenBuffers(1, &buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    glBufferData(GL_ARRAY_BUFFER, 2 * 6 * sizeof(float), &positions, GL_STATIC_DRAW); 
 
-    //glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float), (const void*) 0); 
-    //glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (const void*) 0); 
+    glEnableVertexAttribArray(0);
 
-
-
+    ShaderProgramSource source = ParseShader("res/shaders/Basic.shader");
+        std::cout << "VERTEX" << std::endl;
+        std::cout << source.VertexSource << std::endl;
+        std::cout << "FRAGMENT"  << std::endl;
+        std::cout << source.FragmentSource << std::endl;
+    unsigned int shader = CreateShader(source.VertexSource, source.FragmentSource);
+    glUseProgram(shader);
 
 	/* Loop until the user closes the window */
 	while (!glfwWindowShouldClose(window))
 	{
         glClear(GL_COLOR_BUFFER_BIT);
         
-       // glDrawArrays(GL_TRIANGLES, 0, 3);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        //glDrawArrays(GL_TRIANGLES, 3, 3);
 
-        glBegin(GL_TRIANGLES);
-        glVertex2f(-0.5f, -0.5f);
-        glVertex2f(0.0f, 0.5f);
-        glVertex2f(0.5f, -0.5f);
-        glEnd();
+        //glBegin(GL_TRIANGLES);
+        //glVertex2f(-0.5f, -0.5f);
+        //glVertex2f(0.0f, 0.5f);
+        //glVertex2f(0.5f, -0.5f);
+        //glEnd();
 
 
 		/* Swap front and back buffers */
@@ -129,6 +164,8 @@ int main(void)
 		/* Poll for and process events */
 		glfwPollEvents();
 	}
+
+    glDeleteProgram(shader);
 
 	glfwTerminate();
 	return 0;
